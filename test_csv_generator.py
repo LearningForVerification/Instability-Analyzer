@@ -2,6 +2,8 @@ from InstabilityInspector.Inspector import Inspector
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
+DATASET = "fashion_mnist"
+
 
 def normalize_img(image, label):
     """Normalizes images: `uint8` -> `float32` and flattens to 784."""
@@ -12,7 +14,7 @@ def normalize_img(image, label):
 if __name__ == '__main__':
     # generate dataset
     (ds_train, ds_test), ds_info = tfds.load(
-        'mnist',
+        DATASET,
         split=['train', 'test'],
         shuffle_files=True,
         as_supervised=True,
