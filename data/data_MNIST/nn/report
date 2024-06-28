@@ -1,0 +1,20 @@
+Baseline: 0.033353365384615384, Sparse: 0.026642628205128204, NS: 0.027744391025641024, WP: 0.018729967948717948
+COMBINED BATCHNORM NETWORKS
+Baseline: 0.033353365384615384, Sparse: 0.026642628205128204, NS: 0.027744391025641024, WP: 0.018729967948717948
+
+# Initialization of the training and pruning parameters
+cuda = True  # If possible the experiment should be run with cuda, otherwise it will take quite some time.
+epochs = 100
+train_batch_size = 128
+validation_batch_size = 64
+test_batch_size = 64
+learning_rate = 0.1
+batch_norm_decay = 0.001
+weight_sparsity_rate = 0.4
+neuron_sparsity_rate 1 = 0.5
+neuron_sparsity_rate 2= 0.7
+validation_percentage = 0.3
+scheduler_patience = 5
+l1_decay = 0.0001
+weight_decay = 0.0001
+checkpoint_root = "checkpoints/"

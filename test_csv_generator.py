@@ -33,4 +33,4 @@ if __name__ == '__main__':
     ds_test = ds_test.prefetch(tf.data.AUTOTUNE)
 
     inspector = Inspector("experiments/model.onnx", "experiments", ds_test)
-    dict = inspector.bounds_inspector(1, 0.1, 0.15, True, True)
+    dict = inspector.bounds_inspector(100, 0.05, 0.15, False, True)

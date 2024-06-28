@@ -1,0 +1,17 @@
+
+Baseline: 0.9066166666666666, Sparse: 0.9196666666666666, NS: 0.9084666666666666, WP: 0.8915666666666666
+COMBINED BATCHNORM NETWORKS
+Baseline: 0.8609, Sparse: 0.863, NS: 0.854, WP: 0.8476
+
+train_batch_size = 128
+validation_batch_size = 64
+test_batch_size = 64
+learning_rate = 0.001
+batch_norm_decay = 0.001
+weight_sparsity_rate = 0.4 # Prune 70% of the weights
+neuron_sparsity_rate = 0.3 # Prune 50% of the neurons
+validation_percentage = 0.3
+scheduler_patience = None
+l1_decay = 0.0001
+weight_decay = 0.0001
+checkpoint_root = "checkpoints/"
