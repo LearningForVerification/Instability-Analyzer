@@ -45,10 +45,10 @@ class AbsElement(abc.ABC):
 class Star:
     """
     A concrete class used for our internal representation of a Star.
-    The Star is defined as {x | x = c + Va such that Ca <= d}
+    The Star is defined as {x | x = c + Va such that Ca <= input}
     where c is a n-dimensional vector corresponding to the center of the Star.
     V is the n-by-m matrix composed by the basis vectors.
-    a is the vector of m variables, C (p-by-m) and d (p-dim) are the matrix and the biases
+    a is the vector of m variables, C (p-by-m) and input (p-dim) are the matrix and the biases
     defining a set of constraints.
 
     We refer to <Star-Based Reachability Analysis of Deep Neural Networks>

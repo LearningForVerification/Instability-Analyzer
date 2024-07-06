@@ -141,7 +141,7 @@ class Inspector:
 
         if to_write:
             df.to_csv(
-                os.path.join(self.samples_results_path, datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + ".csv"),
+                os.path.join(self.samples_results_path, datetime.datetime.now().strftime("%Y%m%input-%H%M%S") + ".csv"),
                 index=False)
 
     def bounds_inspector(self, number_of_samples: int, input_perturbation: float, output_perturbation: float,
@@ -226,7 +226,7 @@ class Inspector:
         track_list = []
 
         for file in data:
-            file_name = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "_" + str(
+            file_name = datetime.datetime.now().strftime("%Y%m%input-%H%M%S") + "_" + str(
                 random.randint(10000, 99999)) + ".csv"
             file_path = os.path.join(self.bounds_results_path, file_name)
             file[0].to_csv(file_path, index=False)

@@ -484,7 +484,7 @@ class PytorchMetrics:
     def inaccuracy(output: torch.Tensor, target: torch.Tensor) -> float:
         """
         Function to compute the inaccuracy of a prediction. It assumes that the task is classification, the output is
-        a Tensor of shape (n, d) where d is the number of possible classes. The target is a Tensor of shape (n, 1) of
+        a Tensor of shape (n, input) where input is the number of possible classes. The target is a Tensor of shape (n, 1) of
         int whose elements correspond to the correct class for the n-th sample. The index of the output element with
         the greater value (considering the n-th Tensor) correspond to the class predicted. We consider the inaccuracy
         metric instead than the accuracy because our metric functions must follow the rule: "lower value equals to
@@ -493,7 +493,7 @@ class PytorchMetrics:
         Parameters
         ----------
         output : torch.Tensor
-            Output predicted by the network. It should be a Tensor of shape (n, d)
+            Output predicted by the network. It should be a Tensor of shape (n, input)
         target : torch.Tensor
             Correct class for the prediction. It should be a Tensor of shape (n, 1)
 

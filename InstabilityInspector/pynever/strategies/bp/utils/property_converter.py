@@ -6,7 +6,7 @@ DEBUG = False
 
 class PropertyFormatConverter:
     """
-       A class used for converting a NeverProperty in format Cx<=d into two vectors: a lower_bound_vector and an
+       A class used for converting a NeverProperty in format Cx<=input into two vectors: a lower_bound_vector and an
        upper_bound_vector.
 
        Attributes
@@ -14,7 +14,7 @@ class PropertyFormatConverter:
        coeff : Tensor
            The representation of matrix C
        bias : Tensor
-           The representation of vector d
+           The representation of vector input
        """
 
     def __init__(self, property=None):
