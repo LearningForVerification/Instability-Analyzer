@@ -140,7 +140,7 @@ for h_dim in hidden_layer_dims:
                     f'Epoch [{epoch + 1}/{num_epochs}], Step [{batch_idx + 1}/{len(train_loader)}], Loss: {loss.item():.4f}')
 
         # Early stopping condition if loss is very low
-        if decrease_epoch and loss <= 0.000000001:
+        if decrease_epoch and torch.allclose(loss, torch.tensor(0.0)):
             break
 
     # Calculate accuracy on test and train sets
