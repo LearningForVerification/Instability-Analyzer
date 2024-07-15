@@ -16,6 +16,7 @@ import tensorflow as tf
 import numpy as np
 import onnx
 import onnx2keras
+from onnx2pytorch import ConvertModel
 
 
 def generate_folders(*args):
@@ -57,16 +58,6 @@ def get_fc_weights_biases(model, verbose: bool = False):
             weights.append(numpy_helper.to_array(i))
 
     return weights, biases
-
-
-def convert_float64_to_float32(model):
-    for tensor in model.graph.initializer:
-        if tensor.data_type == onnx.TensorProto.DOUBLE:
-            tensor_float32 = numpy_helper.to_array(tensor).astype(np.float32)
-            tensor.data_type = onnx.TensorProto.FLOAT
-            tensor.raw_data = tensor_float32.tobytes()
-    return model
-
 
 class Inspector:
     def __init__(self, model_path, folder_path, test_dataset):
@@ -184,16 +175,30 @@ class Inspector:
         :param to_write: True if data must be written to disk, False otherwise.
         :return: A list of dictionaries containing the bounds.
         """
-        # Open session to make inference on batch of the dataset
-        session = onnxruntime.InferenceSession(self.model_path)
+
+        # The analysis is run over an onnx model. In case of failure, the onnx model is converted into a Pytorch one
+        pytorch_mode = False
+
+        try:
+            # Open session to make inference on batch of the dataset
+            session = onnxruntime.InferenceSession(self.model_path)
+
+            # Get input and output names from the ONNX model
+            input_name = session.get_inputs()[0].name
+            output_name = session.get_outputs()[0].name
+
+        except Exception as e:
+            # Load ONNX model
+            onnx_model = onnx.load(self.model_path)
+
+            # Convert ONNX model to PyTorch
+            pytorch_model = ConvertModel(onnx_model)
+            pytorch_model.eval()  # Set the model to evaluation mode
+            pytorch_mode = True
 
         # A restricted part of test set to generate the properties
         restricted_test_dataset = Subset(self.test_dataset, list(range(number_of_samples)))
         restricted_test_loader = DataLoader(restricted_test_dataset, batch_size=1, shuffle=False)
-
-        # Get input and output names from the model
-        input_name = session.get_inputs()[0].name
-        output_name = session.get_outputs()[0].name
 
         io_pairs = []
 
@@ -211,12 +216,22 @@ class Inspector:
             if data.ndim == 1:
                 data = data.reshape(1, -1)
 
+            if pytorch_mode:
+                # Perform inference using PyTorch model
+                with torch.no_grad():
+                    # Convert data back to tensor
+                    data_tensor = torch.from_numpy(data).float()
+                    output_tensor = pytorch_model(data_tensor)
 
-            # Prepare input dictionary
-            input_dict = {input_name: data}
+                    # Convert output tensor to numpy
+                    output = output_tensor.numpy()
+            else:
 
-            # Perform inference
-            output = session.run([output_name], input_dict)
+                # Prepare input dictionary
+                input_dict = {input_name: data}
+
+                # Perform inference
+                output = session.run([output_name], input_dict)
 
             # Convert output to flat list
             output_flat = output[0].flatten().tolist()
@@ -225,7 +240,10 @@ class Inspector:
             data_flat = data.flatten().tolist()
 
             # Store the predictions along with the target
-            io_pairs.append((data_flat, output_flat))
+            if np.argmax(output_flat) == target.flatten():
+                io_pairs.append((data_flat, output_flat))
+            else:
+                print("Worng")
 
         # Properties are generated and stored in the specified path
         generate_lc_props(input_perturbation, output_perturbation, io_pairs, self.vnnlib_path)
@@ -236,12 +254,12 @@ class Inspector:
         # Collection of dictionaries containing the bounds
         collected_dicts = []
 
-        model_to_verify = os.path.join(self.folder_path, "model.onnx")
+        model_to_verify = os.path.join(self.folder_path, os.path.basename(self.model_path))
 
         for filename in os.listdir(self.vnnlib_path):
             if filename.endswith('.vnnlib'):
                 i_property_path = os.path.join(self.vnnlib_path, filename)
-                bounds_dict = py_run(model_to_verify, i_property_path, complete)
+                bounds_dict = py_run(str(model_to_verify), i_property_path, complete)
                 bounds_dict.columns = self.labels_list
                 collected_dicts.append((bounds_dict, i_property_path))
 
@@ -280,3 +298,6 @@ class Inspector:
             for x in track_list:
                 report_file.write(f"property: {x[1]}  bounds_file_name: {x[0]} \n")
         print(f"Report written to {report_path}")
+
+    def get_output_folder(self):
+        return self.bounds_results_path

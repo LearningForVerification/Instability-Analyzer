@@ -2,20 +2,11 @@ import torch
 import torchvision
 from torch.utils.data import Subset, DataLoader
 from InstabilityInspector.Inspector import Inspector
+from InstabilityInspector.instability_analysis import Analyzer
 import torchvision.transforms as tr
-
 
 DATASET = "fashion_mnist"
 DATASET_DIR = "dataset"
-
-
-
-def normalize_img(image, label):
-    """Normalizes images: `uint8` -> `float32` and flattens to 784."""
-    image = tf.cast(image, tf.float32) / 255.0  # Normalize
-    image = tf.reshape(image, [-1])  # Flatten to 1D vector of length 784
-    return image, label
-
 
 if __name__ == '__main__':
     # # generate dataset
@@ -50,6 +41,10 @@ if __name__ == '__main__':
     train_dataset = torchvision.datasets.MNIST(DATASET_DIR, train=True, download=True, transform=transform)
     test_dataset = torchvision.datasets.MNIST(DATASET_DIR, train=False, download=True, transform=transform)
 
+    inspector = Inspector(r"/Users/andrea/Desktop/Instability-Analizer/experiments/model1.onnx", "experiments",
+                          test_dataset)
+    dict = inspector.bounds_inspector(5, 0.05, 0.15, False, True)
 
-    inspector = Inspector(r"C:\Users\andr3\Desktop\Instability-Analizer\experiments\model.onnx", "experiments", test_dataset)
-    dict = inspector.bounds_inspector(2, 0.05, 0.15, False, True)
+    analysis = Analyzer(inspector.get_output_folder(),
+                                   r"/Users/andrea/Desktop/Instability-Analizer/experiments/output")
+    analysis.analyze()

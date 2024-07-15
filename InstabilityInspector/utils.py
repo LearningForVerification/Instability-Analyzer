@@ -41,7 +41,7 @@ def con2onnx(model, onnx_folder_path: str):
     """ This function converts h5 keras model to ONNX model and save it """
     onnx_model = onnxmltools.convert_keras(model)
     os.makedirs(onnx_folder_path, exist_ok=True)
-    onnxmltools.utils.save_model(onnx_model, onnx_folder_path + "/model.onnx")
+    onnxmltools.utils.save_model(onnx_model, onnx_folder_path + "/model1.onnx")
     return onnx_model
 
 
