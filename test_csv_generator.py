@@ -1,8 +1,13 @@
+import torch
+import torchvision
+from torch.utils.data import Subset, DataLoader
 from InstabilityInspector.Inspector import Inspector
-import tensorflow as tf
-import tensorflow_datasets as tfds
+import torchvision.transforms as tr
+
 
 DATASET = "fashion_mnist"
+DATASET_DIR = "dataset"
+
 
 
 def normalize_img(image, label):
@@ -11,28 +16,40 @@ def normalize_img(image, label):
     image = tf.reshape(image, [-1])  # Flatten to 1D vector of length 784
     return image, label
 
+
 if __name__ == '__main__':
-    # generate dataset
-    (ds_train, ds_test), ds_info = tfds.load(
-        DATASET,
-        split=['train', 'test'],
-        shuffle_files=True,
-        as_supervised=True,
-        with_info=True,
-    )
+    # # generate dataset
+    # (ds_train, ds_test), ds_info = tfds.load(
+    #     DATASET,
+    #     split=['train', 'test'],
+    #     shuffle_files=True,
+    #     as_supervised=True,
+    #     with_info=True,
+    # )
+    #
+    # ds_train = ds_train.map(
+    #     normalize_img, num_parallel_calls=tf.data.AUTOTUNE)
+    # ds_train = ds_train.cache()
+    # ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
+    # ds_train = ds_train.batch(128)
+    # ds_train = ds_train.prefetch(tf.data.AUTOTUNE)
+    #
+    # ds_test = ds_test.map(
+    #     normalize_img, num_parallel_calls=tf.data.AUTOTUNE)
+    # ds_test = ds_test.batch(128)
+    # ds_test = ds_test.cache()
+    # ds_test = ds_test.prefetch(tf.data.AUTOTUNE)
 
-    ds_train = ds_train.map(
-        normalize_img, num_parallel_calls=tf.data.AUTOTUNE)
-    ds_train = ds_train.cache()
-    ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
-    ds_train = ds_train.batch(128)
-    ds_train = ds_train.prefetch(tf.data.AUTOTUNE)
+    # Data loading and transformations
+    transform = tr.Compose([
+        tr.ToTensor(),
+        tr.Normalize((0.1307,), (0.3081,)),
+        tr.Lambda(lambda x: torch.flatten(x))  # Flatten the image
+    ])
 
-    ds_test = ds_test.map(
-        normalize_img, num_parallel_calls=tf.data.AUTOTUNE)
-    ds_test = ds_test.batch(128)
-    ds_test = ds_test.cache()
-    ds_test = ds_test.prefetch(tf.data.AUTOTUNE)
+    train_dataset = torchvision.datasets.MNIST(DATASET_DIR, train=True, download=True, transform=transform)
+    test_dataset = torchvision.datasets.MNIST(DATASET_DIR, train=False, download=True, transform=transform)
 
-    inspector = Inspector("experiments/model.onnx", "experiments", ds_test)
-    dict = inspector.bounds_inspector(100, 0.05, 0.15, False, True)
+
+    inspector = Inspector(r"C:\Users\andr3\Desktop\Instability-Analizer\experiments\model.onnx", "experiments", test_dataset)
+    dict = inspector.bounds_inspector(2, 0.05, 0.15, False, True)

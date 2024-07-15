@@ -28,7 +28,6 @@ class NN(nn.Module):
         self.l2 = nn.Linear(hidden_size, 10)
 
     def forward(self, x):
-        x = x.view(x.size(0), -1)  # Flatten the input if necessary
         x = self.relu(self.l1(x))
         x = self.l2(x)
         return x

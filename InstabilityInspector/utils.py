@@ -54,7 +54,14 @@ def generate_lc_props(eps_noise: float, delta_tol: float, io_pairs: list, folder
 
     i = 0
     for pair in io_pairs:
-        n_inputs = len(pair[0])
+        if isinstance(pair[0], np.ndarray):
+            pair_0 = pair[0].tolist()
+        elif isinstance(pair[0], list):
+            pair_0 = pair[0]
+        else:
+            raise ValueError("Input sample must be either numpy array or list.")
+
+        n_inputs = len(pair_0)
         n_outputs = len(pair[1])
 
         with open(f'{folder_path}/loc_rob_property_{i}.vnnlib', 'w') as prop_file:
@@ -76,3 +83,13 @@ def generate_lc_props(eps_noise: float, delta_tol: float, io_pairs: list, folder
                 prop_file.write(f'(assert (<= Y_{n} {pair[1][n] + delta_tol}))\n')
 
         i += 1
+
+    # if self.model_path.endswith('.h5'):
+    #     model = keras.models.load_model(self.model_path)
+    #     onnx_model = con2onnx(model, self.folder_path)
+    #
+    #     # Extract the specified number of samples from the test dataset and generate their corresponding local
+    #     # robustness properties
+    # else:
+    #     onnx_model = onnx.load_model(self.model_path)
+    #     k_model = onnx_to_keras(onnx_model, 'X')

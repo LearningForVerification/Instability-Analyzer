@@ -1,16 +1,22 @@
 import datetime
 import os
+import re
 import random
 import pandas as pd
+import torch
 from onnx2keras import onnx_to_keras
+from onnx import numpy_helper
+from torch.utils.data import Subset, DataLoader
 
 from InstabilityInspector.pynever_exe import py_run
 from InstabilityInspector.utils import con2onnx, generate_lc_props, Bounds
+import onnxruntime
 import keras
 import tensorflow as tf
 import numpy as np
 import onnx
 import onnx2keras
+
 
 def generate_folders(*args):
     """
@@ -30,37 +36,59 @@ def dataset_cleaning(test_dataset):
     return test_dataset
 
 
-def get_fc_weights_biases(model):
+def get_fc_weights_biases(model, verbose: bool = False):
     """
-    Extract as numpy arrays the weights and biases matrices of the FC layers of the model in input
+    Extract as numpy arrays the weights and biases matrices of the FC layers of the model in input in format onnx
     """
 
-    weights_matrices = list()
-    bias_matrices = list()
+    # Initialize dictionaries to store weights and biases
+    weights = []
+    biases = []
 
-    for layer in model.layers:
-        if isinstance(layer, tf.keras.layers.Dense):
-            weights, bias = layer.get_weights()
-            weights_matrices.append(weights)
-            bias_matrices.append(bias)
+    initializer = model.graph.initializer
 
-    return weights_matrices, bias_matrices
+    weights_pattern = re.compile(r'weight$')
+    biases_pattern = re.compile(r'bias$')
+
+    for i in initializer:
+        if biases_pattern.search(i.name):
+            biases.append(numpy_helper.to_array(i))
+        elif weights_pattern.search(i.name):
+            weights.append(numpy_helper.to_array(i))
+
+    return weights, biases
+
+
+def convert_float64_to_float32(model):
+    for tensor in model.graph.initializer:
+        if tensor.data_type == onnx.TensorProto.DOUBLE:
+            tensor_float32 = numpy_helper.to_array(tensor).astype(np.float32)
+            tensor.data_type = onnx.TensorProto.FLOAT
+            tensor.raw_data = tensor_float32.tobytes()
+    return model
 
 
 class Inspector:
     def __init__(self, model_path, folder_path, test_dataset):
 
-        # The neural network model must be in .h5 format
+        # The neural network model must be in onnx format
         self.model_path = model_path
 
-        # Load model
-        if self.model_path.endswith('.h5'):
-            self.model = keras.models.load_model(self.model_path)
+        # Load onnx model
+        self.model = onnx.load(self.model_path)
 
-        elif self.model_path.endswith('.onnx'):
-            onnx_model = onnx.load(self.model_path)
-            onnx.checker.check_model(onnx_model)
-            self.model = onnx2keras.onnx_to_keras(onnx_model, ['X'])
+        # Convert all float64 to float32
+        #onnx_model = convert_float64_to_float32(self.model)
+        #onnx.save(onnx_model, self.model_path)
+
+        # # Load model
+        # if self.model_path.endswith('.h5'):
+        #     self.model = keras.models.load_model(self.model_path)
+        #
+        # elif self.model_path.endswith('.onnx'):
+        #     onnx_model = onnx.load(self.model_path)
+        #     onnx.checker.check_model(onnx_model)
+        #     self.model = onnx2keras.onnx_to_keras(onnx_model, ['X'])
 
         # Path where the folders will be created
         self.folder_path = folder_path
@@ -156,33 +184,48 @@ class Inspector:
         :param to_write: True if data must be written to disk, False otherwise.
         :return: A list of dictionaries containing the bounds.
         """
+        # Open session to make inference on batch of the dataset
+        session = onnxruntime.InferenceSession(self.model_path)
 
-        restricted_test_dataset = self.test_dataset.take(number_of_samples)
+        # A restricted part of test set to generate the properties
+        restricted_test_dataset = Subset(self.test_dataset, list(range(number_of_samples)))
+        restricted_test_loader = DataLoader(restricted_test_dataset, batch_size=1, shuffle=False)
+
+        # Get input and output names from the model
+        input_name = session.get_inputs()[0].name
+        output_name = session.get_outputs()[0].name
 
         io_pairs = []
 
-        if self.model_path.endswith('.h5'):
-            model = keras.models.load_model(self.model_path)
-            onnx_model = con2onnx(model, self.folder_path)
-
-            # Extract the specified number of samples from the test dataset and generate their corresponding local
-            # robustness properties
-        else:
-            onnx_model = onnx.load_model(self.model_path)
-            k_model = onnx_to_keras(onnx_model, 'X')
-            # Load the saved Keras model
-            k_model_path = os.path.join(self.folder_path, "converted_model.h5")
-            k_model.save(k_model_path)
-            model = tf.keras.models.load_model(k_model_path)
-
         # Working with already flattened trained networks
-        for sample in restricted_test_dataset:
-            sample_x = list(sample[0].numpy())
+        for batch_idx, (data, target) in enumerate(restricted_test_loader):
+            # Ensure data and target are torch.Tensor objects
+            if not isinstance(data, torch.Tensor) or not isinstance(target, torch.Tensor):
+                raise TypeError("Expected data and target to be torch.Tensor objects")
 
-            sample_y = model.predict(sample[0].numpy().reshape(1, -1))
-            io_pairs.append((sample_x, list(sample_y.reshape(-1))))
+            # Convert data to numpy array if needed
+            data = data.numpy()
+            target = target.numpy()
+
+            # Transform dim in 2D for those models trained in batch
+            if data.ndim == 1:
+                data = data.reshape(1, -1)
 
 
+            # Prepare input dictionary
+            input_dict = {input_name: data}
+
+            # Perform inference
+            output = session.run([output_name], input_dict)
+
+            # Convert output to flat list
+            output_flat = output[0].flatten().tolist()
+
+            # Convert data to flat list
+            data_flat = data.flatten().tolist()
+
+            # Store the predictions along with the target
+            io_pairs.append((data_flat, output_flat))
 
         # Properties are generated and stored in the specified path
         generate_lc_props(input_perturbation, output_perturbation, io_pairs, self.vnnlib_path)
@@ -225,9 +268,8 @@ class Inspector:
         """
         track_list = []
 
-        for file in data:
-            file_name = datetime.datetime.now().strftime("%Y%m%input-%H%M%S") + "_" + str(
-                random.randint(10000, 99999)) + ".csv"
+        for index, file in enumerate(data):
+            file_name = f"df_{index}" + ".csv"
             file_path = os.path.join(self.bounds_results_path, file_name)
             file[0].to_csv(file_path, index=False)
             track_list.append((file_name, file[1]))
