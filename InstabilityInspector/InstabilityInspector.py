@@ -79,7 +79,7 @@ def get_fc_weights_biases(model, verbose: bool = False):
     return weights, biases
 
 
-class Inspector:
+class InstabilityInspector:
     def __init__(self, model_path, folder_path, test_dataset):
 
         # The neural network model must be in onnx format
