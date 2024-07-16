@@ -6,12 +6,14 @@ import torchvision.transforms as tr
 
 DATASET = "fashion_mnist"
 DATASET_DIR = "dataset"
+MEAN = (0.1307,)
+STD = (0.3081,)
 
 if __name__ == '__main__':
     # Data loading and transformations
     transform = tr.Compose([
         tr.ToTensor(),
-        tr.Normalize((0.1307,), (0.3081,)),
+        tr.Normalize(MEAN, STD),
         tr.Lambda(lambda x: torch.flatten(x))  # Flatten the image
     ])
 
