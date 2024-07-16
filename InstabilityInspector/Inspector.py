@@ -2,6 +2,9 @@ import datetime
 import os
 import re
 import random
+import os
+import glob
+
 import pandas as pd
 import torch
 from onnx2keras import onnx_to_keras
@@ -24,8 +27,24 @@ def generate_folders(*args):
     This procedure create folders whose path is defined by the arguments
     :param args: the folders paths
     """
+
     for arg in args:
-        os.makedirs(arg, exist_ok=True)
+        # Check if the folder exists
+        if os.path.exists(arg) and os.path.isdir(arg):
+            # Look for all files in the specified folder
+            all_files = glob.glob(os.path.join(arg, '*'))
+
+            # Filter all non .txt files
+            to_delete_file = [file for file in all_files if not file.endswith('.txt')]
+
+            # Delete each found file
+            for file in to_delete_file:
+                try:
+                    os.remove(file)
+                except Exception as e:
+                    raise ValueError(f"Impossible to remove file: {file}")
+        else:
+            os.makedirs(arg, exist_ok=True)
 
 
 def dataset_cleaning(test_dataset):
@@ -59,6 +78,7 @@ def get_fc_weights_biases(model, verbose: bool = False):
 
     return weights, biases
 
+
 class Inspector:
     def __init__(self, model_path, folder_path, test_dataset):
 
@@ -68,19 +88,6 @@ class Inspector:
         # Load onnx model
         self.model = onnx.load(self.model_path)
 
-        # Convert all float64 to float32
-        #onnx_model = convert_float64_to_float32(self.model)
-        #onnx.save(onnx_model, self.model_path)
-
-        # # Load model
-        # if self.model_path.endswith('.h5'):
-        #     self.model = keras.models.load_model(self.model_path)
-        #
-        # elif self.model_path.endswith('.onnx'):
-        #     onnx_model = onnx.load(self.model_path)
-        #     onnx.checker.check_model(onnx_model)
-        #     self.model = onnx2keras.onnx_to_keras(onnx_model, ['X'])
-
         # Path where the folders will be created
         self.folder_path = folder_path
 
@@ -89,11 +96,10 @@ class Inspector:
 
         # Paths for storing converted ONNX model and properties
         self.vnnlib_path = os.path.join(self.folder_path, "properties")
-        self.bounds_results_path = os.path.join(self.folder_path, "bounds_results")
-        self.samples_results_path = os.path.join(self.folder_path, "samples_results")
+        self.output_path = os.path.join(self.folder_path, "output")
 
         # Path for storing generated data
-        generate_folders(self.bounds_results_path, self.samples_results_path, self.vnnlib_path)
+        generate_folders(self.output_path, self.vnnlib_path)
 
         # Clean test dataset
         self.test_dataset = dataset_cleaning(test_dataset)
@@ -113,58 +119,58 @@ class Inspector:
             self.labels_list.append(f"lower_{i}")
             self.labels_list.append(f"upper_{i}")
 
-    def samples_inspector(self, number_of_samples: int, to_write: bool):
-        # Initialize lists to store sample images and labels
-        samples_list = []
-        labels_list = []
-
-        # Take the specified number of samples from the test dataset
-        test_dataset = self.test_dataset.take(number_of_samples)
-        for sample in test_dataset:
-            # Reshape image to (1, 784) and convert to numpy array
-            reshaped_image = tf.reshape(sample[0], (1, 784)).numpy()
-            samples_list.append(reshaped_image)
-
-        # Initialize lists for bounds and other necessary variables
-        bounds_list = []
-
-        # Get the number of neurons in each hidden layer
-        number_of_neurons_per_layer = [self.weights_matrices[i].shape[1] for i in range(self.n_hidden_layers)]
-
-        # Initialize Bounds objects for each hidden layer
-        for i in range(self.n_hidden_layers):
-            i_layer_bounds = Bounds(number_of_neurons_per_layer[i])
-            bounds_list.append(i_layer_bounds)
-
-        for index, sample in enumerate(samples_list):
-            output = sample
-            for i in range(self.n_layers):
-                # Compute the output of each layer
-                output = np.dot(output, self.weights_matrices[i]) + self.bias_matrices[i]
-                if i != self.n_layers - 1:
-                    # Update bounds for hidden layers
-                    bounds_list[i].update_bounds(output.reshape(-1))
-                    # Apply ReLU activation
-                    output = np.maximum(0, output)
-
-        # Prepare data for CSV export
-        write_dict = {}
-        for x in range(self.n_hidden_layers):
-            lower, upper = bounds_list[x].get_bounds()
-            write_dict[f"lower_{x}"] = lower
-            write_dict[f"upper_{x}"] = upper
-
-        # Create a DataFrame and export to CSV
-        df = pd.DataFrame({k: pd.Series(v) for k, v in write_dict.items()})
-        df.columns = self.labels_list
-
-        if to_write:
-            df.to_csv(
-                os.path.join(self.samples_results_path, datetime.datetime.now().strftime("%Y%m%input-%H%M%S") + ".csv"),
-                index=False)
+    # def samples_inspector(self, number_of_samples: int, analysis_type: str):
+    #     # Initialize lists to store sample images and labels
+    #     samples_list = []
+    #     labels_list = []
+    #
+    #     # Take the specified number of samples from the test dataset
+    #     test_dataset = self.test_dataset.take(number_of_samples)
+    #     for sample in test_dataset:
+    #         # Reshape image to (1, 784) and convert to numpy array
+    #         reshaped_image = tf.reshape(sample[0], (1, 784)).numpy()
+    #         samples_list.append(reshaped_image)
+    #
+    #     # Initialize lists for bounds and other necessary variables
+    #     bounds_list = []
+    #
+    #     # Get the number of neurons in each hidden layer
+    #     number_of_neurons_per_layer = [self.weights_matrices[i].shape[1] for i in range(self.n_hidden_layers)]
+    #
+    #     # Initialize Bounds objects for each hidden layer
+    #     for i in range(self.n_hidden_layers):
+    #         i_layer_bounds = Bounds(number_of_neurons_per_layer[i])
+    #         bounds_list.append(i_layer_bounds)
+    #
+    #     for index, sample in enumerate(samples_list):
+    #         output = sample
+    #         for i in range(self.n_layers):
+    #             # Compute the output of each layer
+    #             output = np.dot(output, self.weights_matrices[i]) + self.bias_matrices[i]
+    #             if i != self.n_layers - 1:
+    #                 # Update bounds for hidden layers
+    #                 bounds_list[i].update_bounds(output.reshape(-1))
+    #                 # Apply ReLU activation
+    #                 output = np.maximum(0, output)
+    #
+    #     # Prepare data for CSV export
+    #     write_dict = {}
+    #     for x in range(self.n_hidden_layers):
+    #         lower, upper = bounds_list[x].get_bounds()
+    #         write_dict[f"lower_{x}"] = lower
+    #         write_dict[f"upper_{x}"] = upper
+    #
+    #     # Create a DataFrame and export to CSV
+    #     df = pd.DataFrame({k: pd.Series(v) for k, v in write_dict.items()})
+    #     df.columns = self.labels_list
+    #
+    #     if analysis_type == "detailed":
+    #         df.to_csv(
+    #             os.path.join(self.samples_results_path, datetime.datetime.now().strftime("%Y%m%input-%H%M%S") + ".csv"),
+    #             index=False)
 
     def bounds_inspector(self, number_of_samples: int, input_perturbation: float, output_perturbation: float,
-                         complete: bool, to_write: bool):
+                         complete: bool, analysis_type: str, output_file_name=None):
         """
         Inspects the bounds of the model using a specified number of samples and perturbations.
 
@@ -172,12 +178,18 @@ class Inspector:
         :param input_perturbation: The perturbation in input for generating the properties.
         :param output_perturbation: The perturbation in output for generating the properties.
         :param complete: True if bounds are precise, otherwise they are over-approximated.
-        :param to_write: True if data must be written to disk, False otherwise.
         :return: A list of dictionaries containing the bounds.
         """
 
+        # Check that analysis type has a admitted value
+        if not (analysis_type == "detailed" or analysis_type == "overall" or analysis_type == "both"):
+            raise ValueError("analysis_type must be either 'detailed' or 'full'")
+
         # The analysis is run over an onnx model. In case of failure, the onnx model is converted into a Pytorch one
         pytorch_mode = False
+
+        # This counts the number of samples wrongly classified
+        violation_counter = 0
 
         try:
             # Open session to make inference on batch of the dataset
@@ -243,7 +255,11 @@ class Inspector:
             if np.argmax(output_flat) == target.flatten():
                 io_pairs.append((data_flat, output_flat))
             else:
-                print("Worng")
+                violation_counter = violation_counter + 1
+
+        if violation_counter / number_of_samples >= 0.8:
+            #raise ValueError("Accuracy lower than 80%")
+            pass
 
         # Properties are generated and stored in the specified path
         generate_lc_props(input_perturbation, output_perturbation, io_pairs, self.vnnlib_path)
@@ -261,10 +277,16 @@ class Inspector:
                 i_property_path = os.path.join(self.vnnlib_path, filename)
                 bounds_dict = py_run(str(model_to_verify), i_property_path, complete)
                 bounds_dict.columns = self.labels_list
-                collected_dicts.append((bounds_dict, i_property_path))
+                collected_dicts.append(bounds_dict)
 
-        if to_write:
+        if analysis_type == "detailed" or analysis_type == "both":
             self.write_csv(collected_dicts)
+
+        if analysis_type == "overall" or analysis_type == "both":
+            if output_file_name is not None:
+                self.analyze(collected_dicts, output_file_name)
+            else:
+                self.analyze(collected_dicts)
 
         return collected_dicts
 
@@ -288,16 +310,30 @@ class Inspector:
 
         for index, file in enumerate(data):
             file_name = f"df_{index}" + ".csv"
-            file_path = os.path.join(self.bounds_results_path, file_name)
-            file[0].to_csv(file_path, index=False)
-            track_list.append((file_name, file[1]))
+            file_path = os.path.join(self.output_path, file_name)
+            file.to_csv(file_path, index=False)
 
-        report_path = os.path.join(self.bounds_results_path, 'report.txt')
+        report_path = os.path.join(self.output_path, 'report.txt')
         with open(report_path, 'w') as report_file:
             report_file.write(f"Number of analysed properties: {len(data)}\n")
             for x in track_list:
                 report_file.write(f"property: {x[1]}  bounds_file_name: {x[0]} \n")
         print(f"Report written to {report_path}")
 
-    def get_output_folder(self):
-        return self.bounds_results_path
+    def analyze(self, collected_dicts, output_file_name="overall_analysis.csv"):
+        results = list()
+        for idx, df in enumerate(collected_dicts):
+            unstable_neurons = list()
+
+            for i in range(self.n_hidden_layers):
+                lower_label = f"lower_{i}"
+                upper_label = f"upper_{i}"
+
+                bool_mask = (df[lower_label] < 0) & (df[upper_label] > 0)
+                unstable_neurons.append(bool_mask.sum())
+
+            temp_dict = {f"layer_{i}": unstable_neurons[i] for i in range(self.n_hidden_layers)}
+            results.append(temp_dict)
+
+        to_write_df = pd.DataFrame(results)
+        to_write_df.to_csv(self.output_path + f"/{output_file_name}", index=False)

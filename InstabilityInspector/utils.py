@@ -41,7 +41,7 @@ def con2onnx(model, onnx_folder_path: str):
     """ This function converts h5 keras model to ONNX model and save it """
     onnx_model = onnxmltools.convert_keras(model)
     os.makedirs(onnx_folder_path, exist_ok=True)
-    onnxmltools.utils.save_model(onnx_model, onnx_folder_path + "/model1.onnx")
+    onnxmltools.utils.save_model(onnx_model, onnx_folder_path + "/model.onnx")
     return onnx_model
 
 
@@ -84,12 +84,25 @@ def generate_lc_props(eps_noise: float, delta_tol: float, io_pairs: list, folder
 
         i += 1
 
-    # if self.model_path.endswith('.h5'):
-    #     model = keras.models.load_model(self.model_path)
-    #     onnx_model = con2onnx(model, self.folder_path)
-    #
-    #     # Extract the specified number of samples from the test dataset and generate their corresponding local
-    #     # robustness properties
-    # else:
-    #     onnx_model = onnx.load_model(self.model_path)
-    #     k_model = onnx_to_keras(onnx_model, 'X')
+
+def get_fc_weights_biases(model, verbose: bool = False):
+    """
+    Extract as numpy arrays the weights and biases matrices of the FC layers of the model in input in format onnx
+    """
+
+    # Initialize dictionaries to store weights and biases
+    weights = []
+    biases = []
+
+    initializer = model.graph.initializer
+
+    weights_pattern = re.compile(r'weight$')
+    biases_pattern = re.compile(r'bias$')
+
+    for i in initializer:
+        if biases_pattern.search(i.name):
+            biases.append(numpy_helper.to_array(i))
+        elif weights_pattern.search(i.name):
+            weights.append(numpy_helper.to_array(i))
+
+    return weights, biases

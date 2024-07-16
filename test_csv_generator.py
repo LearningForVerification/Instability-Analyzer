@@ -2,7 +2,6 @@ import torch
 import torchvision
 from torch.utils.data import Subset, DataLoader
 from InstabilityInspector.Inspector import Inspector
-from InstabilityInspector.instability_analysis import Analyzer
 import torchvision.transforms as tr
 
 DATASET = "fashion_mnist"
@@ -43,8 +42,6 @@ if __name__ == '__main__':
 
     inspector = Inspector(r"/Users/andrea/Desktop/Instability-Analizer/experiments/model1.onnx", "experiments",
                           test_dataset)
-    dict = inspector.bounds_inspector(5, 0.05, 0.15, False, True)
+    dict = inspector.bounds_inspector(5, 0.05, 0.15, False, "overall")
 
-    analysis = Analyzer(inspector.get_output_folder(),
-                                   r"/Users/andrea/Desktop/Instability-Analizer/experiments/output")
-    analysis.analyze()
+
