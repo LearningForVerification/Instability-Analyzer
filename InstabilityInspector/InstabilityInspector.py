@@ -99,7 +99,8 @@ class InstabilityInspector:
         self.output_path = os.path.join(self.folder_path, "output")
 
         # Path for storing generated data
-        generate_folders(self.output_path, self.vnnlib_path)
+        #generate_folders(self.output_path, self.vnnlib_path)
+        generate_folders(self.vnnlib_path)
 
         # Clean test dataset
         self.test_dataset = dataset_cleaning(test_dataset)
@@ -270,12 +271,12 @@ class InstabilityInspector:
         # Collection of dictionaries containing the bounds
         collected_dicts = []
 
-        model_to_verify = os.path.join(self.folder_path, os.path.basename(self.model_path))
+        #model_to_verify = os.path.join(self.folder_path, os.path.basename(self.model_path))
 
         for filename in os.listdir(self.vnnlib_path):
             if filename.endswith('.vnnlib'):
                 i_property_path = os.path.join(self.vnnlib_path, filename)
-                bounds_dict = py_run(str(model_to_verify), i_property_path, complete)
+                bounds_dict = py_run(str(self.model_path), i_property_path, complete)
                 bounds_dict.columns = self.labels_list
                 collected_dicts.append(bounds_dict)
 
@@ -337,3 +338,7 @@ class InstabilityInspector:
 
         to_write_df = pd.DataFrame(results)
         to_write_df.to_csv(self.output_path + f"/{output_file_name}", index=False)
+        print(self.output_path + f"/{output_file_name}")
+        print(f"Write {output_file_name}")
+        print(to_write_df.head(5))
+
