@@ -74,6 +74,9 @@ def get_fc_weights_biases(model, verbose: bool = False):
 
 
 class InstabilityInspector:
+    import os
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
     def __init__(self, model_path, folder_path, test_dataset):
 
         # The neural network model must be in onnx format
