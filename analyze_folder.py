@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 
 DATASET_DIR = "dataset"
 
+
 # Function to analyze all ONNX models in a specified folder
 def analyze_folder(networks_folder_path: str, results_folder_path: str, number_of_samples: int,
                    input_perturbation: float, output_perturbation: float, complete: bool,

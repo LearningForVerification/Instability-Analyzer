@@ -4,13 +4,10 @@ import torchvision
 from InstabilityInspector.InstabilityInspector import InstabilityInspector
 import torchvision.transforms as tr
 
-
-
 # Directory where the MNIST dataset will be stored/downloaded
 DATASET_DIR = "dataset"
 
 if __name__ == '__main__':
-
     # Set up argparse to handle command-line arguments
     parser = argparse.ArgumentParser(description='Instability analysis of neural networks with MNIST dataset.')
 
@@ -54,8 +51,8 @@ if __name__ == '__main__':
 
     # Data loading and transformations
     transform = tr.Compose([
-        tr.ToTensor(),                            # Convert image to tensor
-        tr.Lambda(lambda x: torch.flatten(x))     # Flatten the image into a 1D tensor
+        tr.ToTensor(),  # Convert image to tensor
+        tr.Lambda(lambda x: torch.flatten(x))  # Flatten the image into a 1D tensor
     ])
 
     # Load the MNIST training dataset (for completeness, though not used directly)
