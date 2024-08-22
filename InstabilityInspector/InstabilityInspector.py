@@ -1,25 +1,19 @@
-import datetime
+import re
 import os
 import re
-import random
-import os
-import glob
 
+import numpy as np
+import onnx
+import onnxruntime
 import pandas as pd
 import torch
-from onnx2keras import onnx_to_keras
+import glob
 from onnx import numpy_helper
+from onnx2pytorch import ConvertModel
 from torch.utils.data import Subset, DataLoader
 
 from InstabilityInspector.pynever_exe import py_run
-from InstabilityInspector.utils import con2onnx, generate_lc_props, Bounds
-import onnxruntime
-import keras
-import tensorflow as tf
-import numpy as np
-import onnx
-import onnx2keras
-from onnx2pytorch import ConvertModel
+from InstabilityInspector.utils import generate_lc_props
 
 
 def generate_folders(*args):
@@ -80,6 +74,9 @@ def get_fc_weights_biases(model, verbose: bool = False):
 
 
 class InstabilityInspector:
+    import os
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
     def __init__(self, model_path, folder_path, test_dataset):
 
         # The neural network model must be in onnx format
@@ -171,7 +168,7 @@ class InstabilityInspector:
     #             index=False)
 
     def bounds_inspector(self, number_of_samples: int, input_perturbation: float, output_perturbation: float,
-                         complete: bool, analysis_type: str, output_file_name=None):
+                         complete: bool, analysis_type: str, check_accuracy : bool = True, output_file_name=None):
         """
         Inspects the bounds of the model using a specified number of samples and perturbations.
 
@@ -258,9 +255,9 @@ class InstabilityInspector:
             else:
                 violation_counter = violation_counter + 1
 
-        if violation_counter / number_of_samples >= 0.8:
-            #raise ValueError("Accuracy lower than 80%")
-            pass
+        if violation_counter / number_of_samples >= 0.8 and check_accuracy:
+            raise ValueError("Accuracy lower than 80%")
+
 
         # Properties are generated and stored in the specified path
         generate_lc_props(input_perturbation, output_perturbation, io_pairs, self.vnnlib_path)
