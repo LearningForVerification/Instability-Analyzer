@@ -34,7 +34,8 @@ def analyze_folder(networks_folder_path: str, results_folder_path: str, number_o
         # Check if the file is an ONNX model
         if os.path.isfile(file_path) and file_name.endswith(".onnx"):
             # Generate a unique filename for the analysis results
-            analysis_filename = f"overall_analysis_{index}"
+            analysis_filename = f"overall_analysis_{file_name}"
+            analysis_filename.replace(".onnx", "")
 
             # Initialize the InstabilityInspector for the current ONNX model
             inspector = InstabilityInspector(file_path, results_folder_path, test_dataset)
