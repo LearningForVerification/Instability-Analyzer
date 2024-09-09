@@ -282,11 +282,11 @@ class InstabilityInspector:
 
         if analysis_type == "overall" or analysis_type == "both":
             if output_file_name is not None:
-                self.analyze(collected_dicts, output_file_name)
+                overall_dict = self.analyze(collected_dicts, output_file_name)
             else:
-                self.analyze(collected_dicts)
+                overall_dict = self.analyze(collected_dicts)
 
-        return collected_dicts
+        return collected_dicts, overall_dict
 
     def write_properties_generation_report(self, number_of_samples, input_perturbation, output_perturbation):
         # Write a report specifying the number of properties generated and the perturbations used
@@ -338,4 +338,6 @@ class InstabilityInspector:
         print(self.output_path + f"/{output_file_name}")
         print(f"Write {output_file_name}")
         print(to_write_df.head(5))
+
+        return to_write_df
 
