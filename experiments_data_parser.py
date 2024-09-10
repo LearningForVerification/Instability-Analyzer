@@ -4,6 +4,7 @@ import torch
 import torchvision
 from InstabilityInspector.InstabilityInspector import InstabilityInspector
 import torchvision.transforms as transforms
+import pandas as pd
 
 DATASET_DIR = "dataset"
 
@@ -43,7 +44,7 @@ def analyze_folder(networks_folder_path: str, results_folder_path: str, number_o
             inspector = InstabilityInspector(file_path, results_folder_path, test_dataset)
 
             # Perform the bounds analysis on the model
-            _, dataframe= inspector.bounds_inspector(
+            _, dataframe = inspector.bounds_inspector(
                 number_of_samples,
                 input_perturbation,
                 output_perturbation,
@@ -52,9 +53,23 @@ def analyze_folder(networks_folder_path: str, results_folder_path: str, number_o
                 check_accuracy,
                 output_file_name=analysis_filename
             )
+            key = int(file_name.split("_")[-1].replace(".onnx", ""))
+            row_sum = dataframe.sum(axis=1).astype(int)
+            unstable_neurons_dataframes.append((key, row_sum))
 
-            unstable_neurons_dataframes.append(dataframe)
-            pass
+    unstable_neurons_dataframes.sort(key=lambda x: x[0])
+
+    labels = [x[1] for x in unstable_neurons_dataframes]
+
+    # Concatenare i DataFrame lungo l'asse delle colonne
+    unstable_neurons_dataframes = [x[1] for x in unstable_neurons_dataframes]
+    df_combined = pd.concat(unstable_neurons_dataframes, axis=1)
+
+    # Scrivere il DataFrame combinato su un file Excel
+    file_path = 'output.xlsx'
+    df_combined.to_excel(file_path, index=False)
+
+
 
 
 if __name__ == '__main__':
