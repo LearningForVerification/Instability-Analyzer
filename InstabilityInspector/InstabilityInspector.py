@@ -328,10 +328,14 @@ class InstabilityInspector:
                 upper_label = f"upper_{i}"
 
                 bool_mask = (df[lower_label] < 0) & (df[upper_label] > 0)
+
                 unstable_neurons.append(bool_mask.sum())
 
             temp_dict = {f"layer_{i}": unstable_neurons[i] for i in range(self.n_hidden_layers)}
             results.append(temp_dict)
+
+    def count_active_neurons_frequency(self):
+        # TODO
 
         to_write_df = pd.DataFrame(results)
         to_write_df.to_csv(self.output_path + f"/{output_file_name}", index=False)

@@ -2,6 +2,10 @@
 import os
 import numpy as np
 import re
+
+import onnxmltools
+from onnx import numpy_helper
+
 from InstabilityInspector.pynever import datasets, nodes, networks
 from InstabilityInspector.pynever.strategies import training, conversion
 import torch
