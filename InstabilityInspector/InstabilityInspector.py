@@ -117,55 +117,6 @@ class InstabilityInspector:
             self.labels_list.append(f"lower_{i}")
             self.labels_list.append(f"upper_{i}")
 
-    # def samples_inspector(self, number_of_samples: int, analysis_type: str):
-    #     # Initialize lists to store sample images and labels
-    #     samples_list = []
-    #     labels_list = []
-    #
-    #     # Take the specified number of samples from the test dataset
-    #     test_dataset = self.test_dataset.take(number_of_samples)
-    #     for sample in test_dataset:
-    #         # Reshape image to (1, 784) and convert to numpy array
-    #         reshaped_image = tf.reshape(sample[0], (1, 784)).numpy()
-    #         samples_list.append(reshaped_image)
-    #
-    #     # Initialize lists for bounds and other necessary variables
-    #     bounds_list = []
-    #
-    #     # Get the number of neurons in each hidden layer
-    #     number_of_neurons_per_layer = [self.weights_matrices[i].shape[1] for i in range(self.n_hidden_layers)]
-    #
-    #     # Initialize Bounds objects for each hidden layer
-    #     for i in range(self.n_hidden_layers):
-    #         i_layer_bounds = Bounds(number_of_neurons_per_layer[i])
-    #         bounds_list.append(i_layer_bounds)
-    #
-    #     for index, sample in enumerate(samples_list):
-    #         output = sample
-    #         for i in range(self.n_layers):
-    #             # Compute the output of each layer
-    #             output = np.dot(output, self.weights_matrices[i]) + self.bias_matrices[i]
-    #             if i != self.n_layers - 1:
-    #                 # Update bounds for hidden layers
-    #                 bounds_list[i].update_bounds(output.reshape(-1))
-    #                 # Apply ReLU activation
-    #                 output = np.maximum(0, output)
-    #
-    #     # Prepare data for CSV export
-    #     write_dict = {}
-    #     for x in range(self.n_hidden_layers):
-    #         lower, upper = bounds_list[x].get_bounds()
-    #         write_dict[f"lower_{x}"] = lower
-    #         write_dict[f"upper_{x}"] = upper
-    #
-    #     # Create a DataFrame and export to CSV
-    #     df = pd.DataFrame({k: pd.Series(v) for k, v in write_dict.items()})
-    #     df.columns = self.labels_list
-    #
-    #     if analysis_type == "detailed":
-    #         df.to_csv(
-    #             os.path.join(self.samples_results_path, datetime.datetime.now().strftime("%Y%m%input-%H%M%S") + ".csv"),
-    #             index=False)
 
     def bounds_inspector(self, number_of_samples: int, input_perturbation: float, output_perturbation: float,
                          complete: bool, analysis_type: str, check_accuracy : bool = True, output_file_name=None):
@@ -328,10 +279,14 @@ class InstabilityInspector:
                 upper_label = f"upper_{i}"
 
                 bool_mask = (df[lower_label] < 0) & (df[upper_label] > 0)
+
                 unstable_neurons.append(bool_mask.sum())
 
             temp_dict = {f"layer_{i}": unstable_neurons[i] for i in range(self.n_hidden_layers)}
             results.append(temp_dict)
+
+    def count_active_neurons_frequency(self):
+        # TODO
 
         to_write_df = pd.DataFrame(results)
         to_write_df.to_csv(self.output_path + f"/{output_file_name}", index=False)
