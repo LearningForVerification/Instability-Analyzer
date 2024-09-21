@@ -11,6 +11,9 @@ from InstabilityInspector.pynever.strategies.bp.utils.utils import get_positive_
     compute_lin_lower_and_upper
 from collections import OrderedDict
 
+import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+
 from InstabilityInspector.pynever import nodes
 from InstabilityInspector.pynever.networks import SequentialNetwork
 from InstabilityInspector.pynever.strategies.bp.bounds import SymbolicLinearBounds
@@ -30,16 +33,19 @@ class BoundsManager:
     def __repr__(self):
         return str(self.numeric_bounds)
 
-    def compute_bounds(self):
+    def compute_bounds(self, converted_input = None):
         """
         precomputes bounds for all nodes using symbolic linear propagation
         """
 
         # Create HyperRectBounds from property
-        property_converter = PropertyFormatConverter(self.prop)
+        if converted_input is None:
+            property_converter = PropertyFormatConverter(self.prop)
 
-        # HyperRectBounds input bounds
-        input_hyper_rect = property_converter.get_vectors()
+            # HyperRectBounds input bounds
+            input_hyper_rect = property_converter.get_vectors()
+        else:
+            input_hyper_rect = converted_input
 
         # Get layers
         layers = net2list(self.net)
@@ -84,8 +90,8 @@ class BoundsManager:
 
         return symbolic_bounds, numeric_preactivation_bounds, numeric_postactivation_bounds
 
-    def return_df_dict(self):
-        _, bounds, _ = self.compute_bounds()
+    def return_df_dict(self, converted_input = None):
+        _, bounds, _ = self.compute_bounds(converted_input = converted_input)
         new_dict = dict()
 
         # remove output layer
