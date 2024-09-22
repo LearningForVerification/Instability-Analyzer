@@ -63,7 +63,7 @@ class BoundsManager:
         current_input_bounds = input_bounds
         for i in range(0, len(layers)):
 
-            if isinstance(layers[i], nodes.ReLUNode):
+            if isinstance(layers[i], nodes.ReLUNode) or isinstance(layers[i], nodes.LeakyReLUNode):
                 symbolic_activation_output_bounds = self.compute_relu_output_bounds(symbolic_dense_output_bounds,
                                                                                     input_hyper_rect)
                 postactivation_bounds = HyperRectangleBounds(np.maximum(preactivation_bounds.get_lower(), 0),

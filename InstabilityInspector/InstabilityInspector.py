@@ -1,6 +1,9 @@
+import random
 import re
 import os
 import re
+import InstabilityInspector.pynever.strategies.conversion as pyn_con
+
 
 import numpy as np
 import onnx
@@ -12,8 +15,9 @@ from onnx import numpy_helper
 from onnx2pytorch import ConvertModel
 from torch.utils.data import Subset, DataLoader
 
+import InstabilityInspector.pynever.strategies.bp.bounds_manager as bp
 from InstabilityInspector.pynever_exe import py_run
-from InstabilityInspector.utils import generate_lc_props
+from InstabilityInspector.utils import generate_lc_props, hyperect_properties
 
 
 def generate_folders(*args):
@@ -92,12 +96,11 @@ class InstabilityInspector:
         self.test_dataset = test_dataset
 
         # Paths for storing converted ONNX model and properties
-        self.vnnlib_path = os.path.join(self.folder_path, "properties")
         self.output_path = os.path.join(self.folder_path, "output")
 
         # Path for storing generated data
         #generate_folders(self.output_path, self.vnnlib_path)
-        generate_folders(self.vnnlib_path)
+        #generate_folders(self.vnnlib_path)
 
         # Clean test dataset
         self.test_dataset = dataset_cleaning(test_dataset)
@@ -118,8 +121,8 @@ class InstabilityInspector:
             self.labels_list.append(f"upper_{i}")
 
 
-    def bounds_inspector(self, number_of_samples: int, input_perturbation: float, output_perturbation: float,
-                         complete: bool, analysis_type: str, check_accuracy : bool = True, output_file_name=None):
+    def bounds_inspector(self, number_of_samples: int, input_perturbation: float, complete: bool, analysis_type: str,
+                         check_accuracy: bool = True, output_file_name=None):
         """
         Inspects the bounds of the model using a specified number of samples and perturbations.
 
@@ -195,10 +198,10 @@ class InstabilityInspector:
                 output = session.run([output_name], input_dict)
 
             # Convert output to flat list
-            output_flat = output[0].flatten().tolist()
+            output_flat = output[0].flatten()
 
             # Convert data to flat list
-            data_flat = data.flatten().tolist()
+            data_flat = data.flatten()
 
             # Store the predictions along with the target
             if np.argmax(output_flat) == target.flatten():
@@ -209,24 +212,20 @@ class InstabilityInspector:
         if violation_counter / number_of_samples >= 0.8 and check_accuracy:
             raise ValueError("Accuracy lower than 80%")
 
-
-        # Properties are generated and stored in the specified path
-        generate_lc_props(input_perturbation, output_perturbation, io_pairs, self.vnnlib_path)
-
-        # Write a .txt report specifying the number of properties generated and the noises introduced
-        self.write_properties_generation_report(number_of_samples, input_perturbation, output_perturbation)
+        properties_list = hyperect_properties(input_perturbation, io_pairs)
 
         # Collection of dictionaries containing the bounds
         collected_dicts = []
 
-        #model_to_verify = os.path.join(self.folder_path, os.path.basename(self.model_path))
+        for property in properties_list:
+            net_id = ''.join(str(random.randint(0, 9)) for _ in range(5))
 
-        for filename in os.listdir(self.vnnlib_path):
-            if filename.endswith('.vnnlib'):
-                i_property_path = os.path.join(self.vnnlib_path, filename)
-                bounds_dict = py_run(str(self.model_path), i_property_path, complete)
-                bounds_dict.columns = self.labels_list
-                collected_dicts.append(bounds_dict)
+            onnx_network = pyn_con.ONNXNetwork(net_id, self.model)
+            network = pyn_con.ONNXConverter().to_neural_network(onnx_network)
+
+            bounds_manager = bp.BoundsManager(network, None)
+            overapprox_df_dict = bounds_manager.return_df_dict(converted_input=property)
+            collected_dicts.append(overapprox_df_dict)
 
         if analysis_type == "detailed" or analysis_type == "both":
             self.write_csv(collected_dicts)
@@ -271,28 +270,26 @@ class InstabilityInspector:
 
     def analyze(self, collected_dicts, output_file_name="overall_analysis.csv"):
         results = list()
+
         for idx, df in enumerate(collected_dicts):
             unstable_neurons = list()
 
             for i in range(self.n_hidden_layers):
-                lower_label = f"lower_{i}"
-                upper_label = f"upper_{i}"
+                # Extract the two columns corresponding to the lower and upper bounds
+                lower_column = df.columns[i * 2]
+                upper_column = df.columns[i * 2 + 1]
 
-                bool_mask = (df[lower_label] < 0) & (df[upper_label] > 0)
+                # Create a boolean mask for unstable neurons (lower < 0 and upper > 0)
+                bool_mask = (df[lower_column] < 0) & (df[upper_column] > 0)
 
+                # Count the number of unstable neurons and append to the list
                 unstable_neurons.append(bool_mask.sum())
 
+            # Create a dictionary for the current DataFrame results
             temp_dict = {f"layer_{i}": unstable_neurons[i] for i in range(self.n_hidden_layers)}
             results.append(temp_dict)
 
-    def count_active_neurons_frequency(self):
-        # TODO
-
-        to_write_df = pd.DataFrame(results)
-        to_write_df.to_csv(self.output_path + f"/{output_file_name}", index=False)
-        print(self.output_path + f"/{output_file_name}")
-        print(f"Write {output_file_name}")
-        print(to_write_df.head(5))
-
-        return to_write_df
+        df_results = pd.DataFrame(results)
+        # Save results to CSV (this part is missing in the provided code but can be added)
+        return df_results
 

@@ -13,6 +13,8 @@ import torch.optim as opt
 import os
 import math
 
+from InstabilityInspector.pynever.strategies.bp.bounds import HyperRectangleBounds
+
 
 class Bounds:
 
@@ -86,6 +88,21 @@ def generate_lc_props(eps_noise: float, delta_tol: float, io_pairs: list, folder
                 prop_file.write(f'(assert (<= Y_{n} {pair[1][n] + delta_tol}))\n')
 
         i += 1
+
+def hyperect_properties(eps_noise: float, io_pairs: list):
+    # Given the io_pair list, it necessary to generate the HyperRectangles object
+    bounds_object_list = list()
+
+    for pair in io_pairs:
+        input = pair[0]
+
+        lower = input - eps_noise
+        upper = input + eps_noise
+
+        rect = HyperRectangleBounds(lower, upper)
+        bounds_object_list.append(rect)
+
+    return bounds_object_list
 
 
 def get_fc_weights_biases(model, verbose: bool = False):

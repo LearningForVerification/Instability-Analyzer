@@ -41,15 +41,8 @@ def analyze_folder(networks_folder_path: str, results_folder_path: str, number_o
             inspector = InstabilityInspector(file_path, results_folder_path, test_dataset)
 
             # Perform the bounds analysis on the model
-            inspector.bounds_inspector(
-                number_of_samples,
-                input_perturbation,
-                output_perturbation,
-                complete,
-                analysis_type,
-                check_accuracy,
-                output_file_name=analysis_filename
-            )
+            inspector.bounds_inspector(number_of_samples, input_perturbation, complete, analysis_type, check_accuracy,
+                                       output_file_name=analysis_filename)
 
 
 if __name__ == '__main__':

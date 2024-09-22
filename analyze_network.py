@@ -65,11 +65,5 @@ if __name__ == '__main__':
     inspector = InstabilityInspector(args.model_path, args.results_folder_path, test_dataset)
 
     # Perform bounds inspection using the provided parameters
-    result_dict = inspector.bounds_inspector(
-        args.number_of_samples,
-        args.input_perturbation,
-        args.output_perturbation,
-        args.complete,
-        args.analysis_type,
-        args.check_accuracy
-    )
+    result_dict = inspector.bounds_inspector(args.number_of_samples, args.input_perturbation, args.complete,
+                                             args.analysis_type, args.check_accuracy)
