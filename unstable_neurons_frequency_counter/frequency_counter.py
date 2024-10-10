@@ -185,7 +185,7 @@ class FrequencyAnalyzer():
 
 
 if __name__ == '__main__':
-    model_path = r"C:\Users\andr3\Desktop\Instability-Analizer\unstable_neurons_frequency_counter\mnist_fc_model.onnx"
+    model_path = r"C:\Users\andr3\Desktop\MNIST\no_batch incredible results\1100.onnx"
 
     # Data loading and transformation for the MNIST dataset
     transform = tr.Compose([
@@ -200,15 +200,27 @@ if __name__ == '__main__':
     test_dataset = torchvision.datasets.MNIST(DATASET_DIR, train=False, download=True, transform=transform)
 
     frequency_analyzer = FrequencyAnalyzer(model_path, train_dataset)
-
     class_dict = {
-        "0": 9,
-        "1": 8,
-        "2": 9,
-        "6": 15
+        "0": 50,
+        "1": 50,
+        "2": 50,
+        "3": 50,
+        "4": 50,
+        "5": 50,
+        "6": 50,
+        "7": 50,
+        "8": 50,
+        "9": 50
     }
 
     multiclass_class_dict = frequency_analyzer.get_frequency_multi_class(class_dict, 0.015, 0.03)
+
+    #TODO
+    for key, value in multiclass_class_dict.items():
+        multiclass_class_dict[key] = value[0]
+
+    df = pd.DataFrame(multiclass_class_dict)
+    df.to_csv("output.csv", index=False)
     pass
 
 

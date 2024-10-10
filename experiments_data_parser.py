@@ -111,10 +111,10 @@ if __name__ == '__main__':
     ])
 
     # Load the MNIST training dataset (for consistency, though not used in this script)
-    train_dataset = torchvision.datasets.MNIST(DATASET_DIR, train=True, download=True, transform=transform)
+    train_dataset = torchvision.datasets.FashionMNIST(DATASET_DIR, train=True, download=True, transform=transform)
 
     # Load the MNIST test dataset
-    test_dataset = torchvision.datasets.MNIST(DATASET_DIR, train=False, download=True, transform=transform)
+    test_dataset = torchvision.datasets.FashionMNIST(DATASET_DIR, train=False, download=True, transform=transform)
 
     # Call the analyze_folder function with the parsed arguments
     analyze_folder(

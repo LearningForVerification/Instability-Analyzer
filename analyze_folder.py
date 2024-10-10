@@ -1,7 +1,11 @@
 import argparse
 import os
+
+# Set the environment variable
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 import torch
 import torchvision
+from torch.utils.data import Subset, DataLoader
 from InstabilityInspector.InstabilityInspector import InstabilityInspector
 import torchvision.transforms as transforms
 
@@ -41,8 +45,10 @@ def analyze_folder(networks_folder_path: str, results_folder_path: str, number_o
             inspector = InstabilityInspector(file_path, results_folder_path, test_dataset)
 
             # Perform the bounds analysis on the model
-            inspector.bounds_inspector(number_of_samples, input_perturbation, complete, analysis_type, check_accuracy,
+            _, overall_dict = inspector.bounds_inspector(number_of_samples, input_perturbation, complete, analysis_type, check_accuracy,
                                        output_file_name=analysis_filename)
+            print(overall_dict.head(5))
+
 
 
 if __name__ == '__main__':
@@ -91,10 +97,10 @@ if __name__ == '__main__':
     ])
 
     # Load the MNIST training dataset (for consistency, though not used in this script)
-    train_dataset = torchvision.datasets.MNIST(DATASET_DIR, train=True, download=True, transform=transform)
+    train_dataset = torchvision.datasets.FashionMNIST(DATASET_DIR, train=True, download=True, transform=transform)
 
-    # Load the MNIST test dataset
-    test_dataset = torchvision.datasets.MNIST(DATASET_DIR, train=False, download=True, transform=transform)
+    global test_dataset
+    test_dataset = torchvision.datasets.FashionMNIST(DATASET_DIR, train=False, download=True, transform=transform)
 
     # Call the analyze_folder function with the parsed arguments
     analyze_folder(

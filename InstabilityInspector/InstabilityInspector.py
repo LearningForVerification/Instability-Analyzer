@@ -209,7 +209,7 @@ class InstabilityInspector:
             else:
                 violation_counter = violation_counter + 1
 
-        if violation_counter / number_of_samples >= 0.8 and check_accuracy:
+        if violation_counter / number_of_samples >= 0.2 and check_accuracy:
             raise ValueError("Accuracy lower than 80%")
 
         properties_list = hyperect_properties(input_perturbation, io_pairs)
