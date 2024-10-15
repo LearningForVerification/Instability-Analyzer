@@ -185,7 +185,7 @@ class FrequencyAnalyzer():
 
 
 if __name__ == '__main__':
-    model_path = r"C:\Users\andr3\Desktop\MNIST\no_batch incredible results\1100.onnx"
+    model_path = r"sparse_1100.onnx"
 
     # Data loading and transformation for the MNIST dataset
     transform = tr.Compose([
@@ -200,6 +200,7 @@ if __name__ == '__main__':
     test_dataset = torchvision.datasets.MNIST(DATASET_DIR, train=False, download=True, transform=transform)
 
     frequency_analyzer = FrequencyAnalyzer(model_path, train_dataset)
+
     class_dict = {
         "0": 50,
         "1": 50,
@@ -210,18 +211,30 @@ if __name__ == '__main__':
         "6": 50,
         "7": 50,
         "8": 50,
-        "9": 50
+        "9": 50,
     }
 
-    multiclass_class_dict = frequency_analyzer.get_frequency_multi_class(class_dict, 0.015, 0.03)
+    multiclass_class_dict = frequency_analyzer.get_frequency_multi_class(class_dict, 0.05, 0.03)
 
-    #TODO
-    for key, value in multiclass_class_dict.items():
-        multiclass_class_dict[key] = value[0]
+    # get dim of the vectors
+    shape = multiclass_class_dict[0][0].shape
 
-    df = pd.DataFrame(multiclass_class_dict)
-    df.to_csv("output.csv", index=False)
-    pass
+
+    stacked_array = np.zeros(shape=shape)
+
+    for index, value in multiclass_class_dict.items():
+        stacked_array = np.vstack([stacked_array, value])
+
+    sum_over_columns = stacked_array.sum(axis=0)
+
+    bool_mask = sum_over_columns > 0
+    number_of_active_nodes = np.sum(bool_mask)
+
+    # Salva l'array usando np.savetxt
+    np.savetxt('output_file.txt', sum_over_columns, delimiter=',', fmt='%d')
+    print(number_of_active_nodes)
+
+
 
 
 
