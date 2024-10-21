@@ -5,6 +5,7 @@ import pandas as pd
 from InstabilityInspector.pynever import nodes
 from InstabilityInspector.pynever.networks import SequentialNetwork
 from InstabilityInspector.pynever.strategies.bp.bounds import SymbolicLinearBounds
+from InstabilityInspector.pynever.strategies.bp.convolution import ConvLinearization
 from InstabilityInspector.pynever.strategies.bp.linearfunctions import LinearFunctions
 from InstabilityInspector.pynever.strategies.bp.utils.property_converter import *
 from InstabilityInspector.pynever.strategies.bp.utils.utils import get_positive_part, get_negative_part, \
@@ -63,11 +64,16 @@ class BoundsManager:
         current_input_bounds = input_bounds
         for i in range(0, len(layers)):
 
+            flatten_ignore = False
+            relu_ignore = False
+
             if isinstance(layers[i], nodes.ReLUNode) or isinstance(layers[i], nodes.LeakyReLUNode):
                 symbolic_activation_output_bounds = self.compute_relu_output_bounds(symbolic_dense_output_bounds,
                                                                                     input_hyper_rect)
                 postactivation_bounds = HyperRectangleBounds(np.maximum(preactivation_bounds.get_lower(), 0),
                                                              np.maximum(preactivation_bounds.get_upper(), 0))
+                relu_ignore = True
+
 
             elif isinstance(layers[i], nodes.FullyConnectedNode):
                 symbolic_dense_output_bounds = self.compute_dense_output_bounds(layers[i], current_input_bounds)
@@ -79,11 +85,30 @@ class BoundsManager:
                 postactivation_bounds = HyperRectangleBounds(preactivation_bounds.get_lower(),
                                                              preactivation_bounds.get_upper())
 
+
+            elif isinstance(layers[i], nodes.ConvNode):
+
+                """ Convolutional layer """
+                cur_layer_output_eq = ConvLinearization().compute_output_equation(layers[i], current_input_bounds)
+                symbolic_activation_output_bounds = cur_layer_output_eq
+
+                preactivation_bounds = cur_layer_output_eq.to_hyper_rectangle_bounds(input_hyper_rect)
+                postactivation_bounds = preactivation_bounds
+                symbolic_dense_output_bounds = cur_layer_output_eq
+                numeric_preactivation_bounds[layers[i].identifier] = preactivation_bounds
+                print(f"dim: {preactivation_bounds.lower.shape[0]}")
+
+            elif isinstance(layers[i], nodes.FlattenNode):
+                """ Flatten layer """
+                flatten_ignore = True
+
             else:
                 raise Exception("Currently supporting bounds computation only for Relu and Linear activation functions")
 
-            symbolic_bounds[layers[i].identifier] = (symbolic_dense_output_bounds, symbolic_activation_output_bounds)
-            numeric_postactivation_bounds[layers[i].identifier] = postactivation_bounds
+
+            if not (flatten_ignore or relu_ignore):
+                symbolic_bounds[layers[i].identifier] = (symbolic_dense_output_bounds, symbolic_activation_output_bounds)
+                numeric_postactivation_bounds[layers[i].identifier] = postactivation_bounds
 
             current_input_bounds = symbolic_activation_output_bounds
             self.numeric_bounds = numeric_postactivation_bounds

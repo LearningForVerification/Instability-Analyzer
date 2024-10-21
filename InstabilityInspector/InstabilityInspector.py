@@ -20,6 +20,9 @@ from InstabilityInspector.pynever_exe import py_run
 from InstabilityInspector.utils import generate_lc_props, hyperect_properties
 
 
+REGRESSION = True
+
+
 def generate_folders(*args):
     """
     This procedure create folders whose path is defined by the arguments
@@ -203,11 +206,15 @@ class InstabilityInspector:
             # Convert data to flat list
             data_flat = data.flatten()
 
-            # Store the predictions along with the target
-            if np.argmax(output_flat) == target.flatten():
+
+            if not REGRESSION:
+                # Store the predictions along with the target
+                if np.argmax(output_flat) == target.flatten():
+                    io_pairs.append((data_flat, output_flat))
+                else:
+                    violation_counter = violation_counter + 1
+            else :
                 io_pairs.append((data_flat, output_flat))
-            else:
-                violation_counter = violation_counter + 1
 
         if violation_counter / number_of_samples >= 0.2 and check_accuracy:
             raise ValueError("Accuracy lower than 80%")

@@ -502,6 +502,9 @@ class ConvNode(SingleInputLayerNode):
         self.bias = bias
         self.weight = weight
 
+    def get_input_dim(self) -> tuple:
+        return self.in_dim
+
     def update_input(self, in_dim: Tuple):
         self.__init__(self.identifier, in_dim, self.out_channels,
                       self.kernel_size, self.stride, self.padding, self.dilation, self.groups,
