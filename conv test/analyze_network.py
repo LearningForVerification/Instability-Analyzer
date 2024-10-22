@@ -82,5 +82,5 @@ if __name__ == '__main__':
     inspector = InstabilityInspector(r"C:\Users\andr3\Desktop\Instability-Analizer\conv test\mnist_model.onnx", "results", val_dataset)
 
     # Perform bounds inspection using the provided parameters
-    result_dict = inspector.bounds_inspector(1, 0.015, False, "overall", False)
+    result_dict = inspector.bounds_inspector(3, 0.015, False, "overall", False)
     pass
