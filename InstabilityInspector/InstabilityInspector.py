@@ -18,8 +18,9 @@ from torch.utils.data import Subset, DataLoader
 import InstabilityInspector.pynever.strategies.bp.bounds_manager as bp
 from InstabilityInspector.pynever_exe import py_run
 from InstabilityInspector.utils import generate_lc_props, hyperect_properties
+import os
 
-
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 REGRESSION = True
 
 
@@ -81,8 +82,6 @@ def get_fc_weights_biases(model, verbose: bool = False):
 
 
 class InstabilityInspector:
-    import os
-    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
     def __init__(self, model_path, folder_path, test_dataset):
 
@@ -100,10 +99,6 @@ class InstabilityInspector:
 
         # Paths for storing converted ONNX model and properties
         self.output_path = os.path.join(self.folder_path, "output")
-
-        # Path for storing generated data
-        #generate_folders(self.output_path, self.vnnlib_path)
-        #generate_folders(self.vnnlib_path)
 
         # Clean test dataset
         self.test_dataset = dataset_cleaning(test_dataset)
