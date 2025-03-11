@@ -96,10 +96,10 @@ def plot_frequency_graphs(frequency_maps, limit=None, title=None, output_folder=
     for i, frequency_map in enumerate(frequency_maps, start=1):
         x_labels = list(range(1, len(frequency_map) + 1))
         plt.figure(figsize=(8, 6))
-        plt.plot(x_labels, frequency_map, marker='o', linestyle='-', color='b')
-        plt.xlabel("Neurons")
+        plt.bar(x_labels, frequency_map, color='b',width=0.7)
+        plt.xlabel(f"Neurons of a {len(frequency_map)} layer")
         plt.ylabel("Values of x")
-        plt.xticks(x_labels)
+        #plt.xticks(x_labels)
         plt.grid(True)
 
         if title is not None:
@@ -118,3 +118,46 @@ def plot_frequency_graphs(frequency_maps, limit=None, title=None, output_folder=
         else:
             plt.show()
 
+def plot_multiple_frequency_graphs(frequency_maps, limit=None, title=None, output_folder=None, cols=2):
+    """
+    Plotta più grafici delle frequenze in un'unica immagine.
+
+    Args:
+        frequency_maps (list): Lista di liste, ciascuna contenente i valori da plottare.
+        limit (int, optional): Se specificato, traccia una linea orizzontale a questa posizione.
+        output_folder (str, optional): Se specificato, salva l'immagine in questa cartella.
+        cols (int, optional): Numero di colonne nei subplot.
+    """
+    num_graphs = len(frequency_maps)
+    rows = (num_graphs + cols - 1) // cols  # Calcola il numero di righe
+
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 4))  # Layout dinamico
+    axes = axes.flatten()  # Converte in lista per iterare più facilmente
+
+    for i, (ax, frequency_map) in enumerate(zip(axes, frequency_maps)):
+        x_labels = list(range(1, len(frequency_map) + 1))
+        ax.bar(x_labels, frequency_map, color='b', alpha=0.6, width=0.7)
+        ax.set_xlabel("")
+        ax.set_ylabel("Values of x")
+        ax.set_xticks([])  # Rimuove i tick dell'asse X
+        ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+        if title:
+            ax.set_title(f"{title} {len(frequency_map)} neurons")
+
+        if limit is not None:
+            ax.axhline(y=limit, color='r', linestyle='--', linewidth=1)
+
+    # Rimuove eventuali subplot vuoti
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+
+    if output_folder:
+        os.makedirs(output_folder, exist_ok=True)
+        file_path = os.path.join(output_folder, "multiple_frequency_graphs.png")
+        plt.savefig(file_path)
+        plt.close()
+    else:
+        plt.show()

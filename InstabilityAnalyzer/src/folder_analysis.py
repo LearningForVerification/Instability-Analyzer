@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 import os
 import csv
-from single_model_analysis import AnalyzeModel
+from InstabilityAnalyzer.src.single_model_analysis import AnalyzeModel
 
 class FolderModelAnalysis:
     def __init__(self, folder_path, n_samples, dataset_loader):

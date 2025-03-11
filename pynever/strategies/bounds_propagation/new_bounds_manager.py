@@ -76,7 +76,7 @@ class NewBoundsManager:
                 raise NotImplementedError('Backwards bounds propagation not yet implemented for convolutional layers')
 
 
-        elif isinstance(layer, nodes.ReLUNode):
+        elif isinstance(layer, nodes.ReLUNode) or isinstance(layer, nodes.LeakyReLUNode):
             """ ReLU layer """
 
             relu_lin = LinearizeReLU(fixed_neurons={}, input_hyper_rect=self.input_bounds)
